@@ -2,7 +2,7 @@ import streamlit as st
 import links_check as lc
 
 APP_TITLE = st.title('SEOPY ENGINE')
-HEAD_TITLE = st.header('Find Broken Links')
+HEAD_TITLE = st.header('Audit Your Website For Broken Links')
 
 DOMAIN_NAME = st.text_input("Domain Name", 'example.com')
 st.write('The current domain name is', DOMAIN_NAME)
@@ -13,7 +13,11 @@ st.write('The current website url is', WEBSITE_URL)
 
 pages = lc.get_list_unique_pages(WEBSITE_URL)
 st.write('WEBSITE PAGES', len(pages))
-st.write(pages)
+if len(pages) == 0:
+    error_message = '<p style="font-family:Courier; color:Red; font-size: 20px;">Unable to read sitemap</p>'
+    st.markdown(error_message, unsafe_allow_html=True)
+else:
+    st.write(pages)
 
 internal_links_raw, external_links_raw = lc.link_list(pages)
 

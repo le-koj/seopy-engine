@@ -39,6 +39,7 @@ def get_list_unique_pages(domain_url: str) -> list:
         list: returns a unique list of pages links found.
     """
     list_pages_raw = get_pages_from_sitemap(domain_url)
+    print(f"\n----\nRaw Pages: {list_pages_raw}\n-----\n")
     list_pages = []
     
     for page in list_pages_raw:
@@ -50,7 +51,6 @@ def get_list_unique_pages(domain_url: str) -> list:
     print(f'Number Of Pages: {len(list_pages)}')
     return list_pages
 
-# Get external link list raw
 def link_list(list_pages: list) -> Tuple[List[list], List[list]]:
     """
     Return two list items. one containing all the internal links and the other 
@@ -70,6 +70,7 @@ def link_list(list_pages: list) -> Tuple[List[list], List[list]]:
     print(f"\n-----\nDomain URL: {DOMAIN_NAME}\n-----\n")
             
     def _create_link_lists(list_of_links):
+        #print(f"\n-----\n{list_of_links}\n-----\n")
         for link in list_of_links:
             try:
                 if DOMAIN_NAME in link["href"] and "http" in link["href"]:
