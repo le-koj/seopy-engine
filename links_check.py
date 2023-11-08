@@ -1,55 +1,62 @@
+"""Website Link Auditor
+
+This script allows the user to automate the inspection of all
+the internal and external links on a website. The script allows
+the user to audit a website for broken links.
+
+This script requires the senders email address, email password,
+the receiver's email, and the email subject.
+
+This script uses the following libraries:
+    ultimate sitemap parser
+    requests library
+    pandas
+    BeautifulSoup
+    typing
+
+This file can also be imported as a module and contains the following
+functions:
+
+    * get_pages_from_sitemap - Returns a list of all the pages present on a website.
+    * filter_unique_urls - Return a set of unique urls from list of raw urls.
+
+    
+"""
 from usp.tree import sitemap_tree_for_homepage
 import requests
-#import settings
 import pandas as pd
 from bs4 import BeautifulSoup
 from typing import Tuple, List
 
-DOMAIN_NAME = "" #settings.DOMAIN_NAME
-USER_AGENT = {'User-Agent': 'Mozilla/5.0 (X11; CrOS x86_64 8172.45.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.64 Safari/537.36'}
+DOMAIN_NAME = "" 
 
-# Find and Parse Sitemaps to Create List of all website's pages
 def get_pages_from_sitemap(domain_url: str) -> list:
+    """Returns a list of all the webpages on a website.
+
+    Args:
+        domain_url (str): A string representing the website home address, ex. 'https://example.com/'.
+
+    Returns:
+        list: returns a raw list of webpage urls.
     """
-    Returns a list of all the pages present on a website.
+    
+    sitemap_pages = sitemap_tree_for_homepage(domain_url).all_pages() # returns iterator object
+    url_raw_list = [page.url for page in sitemap_pages] # list of urls
+    return url_raw_list
+
+def filter_unique_urls(domain_url: str) -> set:
+    """Return a set of unique urls from list of raw urls.
 
     Args:
         domain_url (str): A string representing the website address, ex. 'https://example.com/'.
 
     Returns:
-        list: returns a raw list of pages found.
+        set: returns a unique set of urls.
     """
-    list_pages_raw = [] # list of pages url
     
-    tree = sitemap_tree_for_homepage(domain_url)
-    for page in tree.all_pages():
-        list_pages_raw.append(page.url)
-     
-    #print(f"\n----\nRaw Pages:\n{list_pages_raw}\n-----\n")    
-    return list_pages_raw
-
-def get_list_unique_pages(domain_url: str) -> list:
-    """
-    Return a list of unique pages links from list of raw pages links.
-
-    Args:
-        domain_url (str): A string representing the website address, ex. 'https://example.com/'.
-
-    Returns:
-        list: returns a unique list of pages links found.
-    """
-    list_pages_raw = get_pages_from_sitemap(domain_url)
-    print(f"\n----\nRaw Pages: {list_pages_raw}\n-----\n")
-    list_pages = []
-    
-    for page in list_pages_raw:
-        if page in list_pages:
-            pass
-        else:
-            list_pages.append(page)
-    
-    print(f'Number Of Pages: {len(list_pages)}')
-    return list_pages
+    # filter out duplicate urls
+    unqiue_urls = set(get_pages_from_sitemap(domain_url))
+    return unqiue_urls
 
 def link_list(list_pages: list) -> Tuple[List[list], List[list]]:
     """
@@ -144,9 +151,9 @@ def identify_broken_links(unique_links: list) -> List[list]:
             
     return broken_link_list
 
-# Identify unique broken links and matches them to original list of all links
+
 def match_broken_links(broken_links_list: List[list], link_list_raw: List[list]) -> List[list]:
-    """_summary_
+    """Identify unique broken links and matches them to original list of all links
 
     Args:
         broken_links_list (List[list]): _description_
@@ -164,12 +171,6 @@ def match_broken_links(broken_links_list: List[list], link_list_raw: List[list])
             else:
                 pass
          
-    #for link in link_list_raw:
-       # if link[1] in broken_links_list:
-        #    broken_link_location.append([link[0], link[1], link[2]])
-        #else:
-         #   pass
-
     pd.set_option('display.max_rows', 100)
     dataframe_final = pd.DataFrame(broken_link_location, columns=["URL", "Broken Link URL", "Anchor Text", "Status Code"])
     return dataframe_final
@@ -177,17 +178,31 @@ def match_broken_links(broken_links_list: List[list], link_list_raw: List[list])
                 
 
 if __name__ == "__main__":
-    pages = get_list_unique_pages(settings.WEBSITE_URL)
-    internal_links_raw, external_links_raw = link_list(pages)
-    internal_unique_links = get_unique_links(internal_links_raw)
-    external_unique_links = get_unique_links(external_links_raw)
+    import sys
+
+    try:
+        print('getting info')
+        DOMAIN_NAME = sys.argv[1]
+        WEBSITE_URL = sys.argv[2] # full website url with protocol ex. "https://example.com"
+    except IndexError as ie:
+        sys.exit(f"\n----\nERROR: please provide both the DOMAIN NAME and the FULL WEBSITE URL\n-----\n")
+        
+    website_pages = get_pages_from_sitemap(WEBSITE_URL)
+    print(f"-------\nWebsite Pages:\n{pd.Series(website_pages)}\n-------\n")
     
-    internal_broken_links = identify_broken_links(internal_unique_links)
-    external_broken_links = identify_broken_links(external_unique_links)
-    print(f'\n-----\n')
-    print(f"{len(internal_broken_links)} Internal Broken Links:\n{internal_broken_links}")
-    print(f'\n-----\n')
-    print(f"{len(external_broken_links)} External Broken Links:\n{external_broken_links}\n\n")
-    print(match_broken_links(internal_broken_links, internal_links_raw))
-    print(f'\n-----\n')
-    print(match_broken_links(external_broken_links, external_links_raw))
+    filtered_pages = filter_unique_urls(WEBSITE_URL)
+    print(f"-------\nFiltered Pages:\n{pd.Series(list(filtered_pages))}\n-------\n")
+    #pages = get_list_unique_pages(WEBSITE_URL)
+    #internal_links_raw, external_links_raw = link_list(pages)
+    #internal_unique_links = get_unique_links(internal_links_raw)
+    #external_unique_links = get_unique_links(external_links_raw)
+    
+    #internal_broken_links = identify_broken_links(internal_unique_links)
+    #external_broken_links = identify_broken_links(external_unique_links)
+    #print(f'\n-----\n')
+    #print(f"{len(internal_broken_links)} Internal Broken Links:\n{internal_broken_links}")
+    #print(f'\n-----\n')
+    #print(f"{len(external_broken_links)} External Broken Links:\n{external_broken_links}\n\n")
+    #print(match_broken_links(internal_broken_links, internal_links_raw))
+    #print(f'\n-----\n')
+    #print(match_broken_links(external_broken_links, external_links_raw))
