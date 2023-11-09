@@ -23,10 +23,8 @@ from usp.tree import sitemap_tree_for_homepage
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
-from typing import Tuple, List
+from typing import Tuple, List, Iterable
 import settings
-
-DOMAIN_NAME = "" 
 
 def get_pages_from_sitemap(domain_url: str) -> list:
     """
@@ -108,47 +106,181 @@ def filter_unique_urls(domain_url: str) -> set:
     unqiue_urls = set(get_pages_from_sitemap(domain_url))
     return unqiue_urls
 
-def link_list(list_pages: list) -> Tuple[List[list], List[list]]:
+def map_anchors_to_url(unqiue_urls: list) -> dict[str, Iterable[dict]]:
     """
-    Return two list items. one containing all the internal links and the other 
-    all the external links, along with their location and associated text.
+    Get and map anchors to their respective URLs.
 
-    Args:
-        list_pages (list): a list of all the unique page urls for a website
+    Parameters
+    ----------
+    unique_urls : list
+        A list of unique URLs.
 
-    Returns:
-        Tuple[List[list], List[list]]: tuple of 2 lists containing internal and external link information, respectfully
+    Returns
+    -------
+    dict[str, Iterable[dict]]
+        A dictionary mapping each URL to an iterable of its associated anchor tags.
+
+    Notes
+    -----
+    This function makes use of the 'requests' library to fetch the content of each URL and
+    'BeautifulSoup' for parsing HTML to extract anchor tags.
+
+    Examples
+    --------
+    >>> unique_urls = ['https://example.com', 'https://example.com/page1']
+    >>> url_anchors_map = map_anchors_to_url(unique_urls)
+    >>> isinstance(url_anchors_map, dict)
+    True
+
+    >>> len(url_anchors_map) == len(unique_urls)
+    True
+
+    >>> all(isinstance(anchors, Iterable) for anchors in url_anchors_map.values())
+    True
+
+    >>> all(isinstance(anchor, dict) for anchors in url_anchors_map.values() for anchor in anchors)
+    True
+
+    >>> 'https://example.com' in url_anchors_map
+    True
+
+    >>> 'https://example.com/nonexistent' in url_anchors_map
+    False
     """
-    external_link_list_raw = []
-    internal_link_list_raw = []
+    print('\n', '#' * 10, '\n', '#', '\t', 'Mapping Anchors To URL', '\n', '#' * 10, '\n')
+    
     count = 0
-    length_list = len(list_pages)
+    length_list = len(unqiue_urls)
+    url_map = dict()
     
-    print(f"\n-----\nDomain URL: {DOMAIN_NAME}\n-----\n")
-            
-    def _create_link_lists(list_of_links):
-        for link in list_of_links:
-            try:
-                if DOMAIN_NAME in link["href"] and "http" in link["href"]:
-                    internal_link_list_raw.append([url, link["href"], link.text])
-                elif "http" not in link["href"]:
-                    pass
-                else:
-                    external_link_list_raw.append([url, link["href"], link.text])
-            except:
-                pass
-    
-    for url in list_pages:
+    # get and map the anchors to a given url
+    for url in unqiue_urls:
         count = count + 1
         request = requests.get(url, headers=settings.USER_AGENT)
         content = request.content
         soup = BeautifulSoup(content, 'lxml')
-        list_of_links = soup.find_all("a")
-        
-        _create_link_lists(list_of_links=list_of_links)
-        print(count, "pages checked out of ", length_list, ".")
+        url_anchors = soup.find_all("a") # returns iterable
+        url_map[f'{url}'] = url_anchors
+        print('-------> ', count, "pages checked out of ", length_list, "\n")
     
-    return internal_link_list_raw, external_link_list_raw
+    print('\n', '#' * 10, '\n', '#', '\t', '!!!End Maping Anchors To URL!!!', '\n', '#' * 10, '\n')
+    return url_map
+
+def create_link_lists(domain_name: str, url: str, page_anchors: Iterable[dict]) -> Tuple[List[list], List[list]]:
+    """
+    Create lists of internal and external links for a given URL.
+
+    Parameters
+    ----------
+    domain_name : str
+        The domain name to filter internal links.
+    url : str
+        The URL of the webpage.
+    page_anchors : Iterable[dict]
+        Iterable containing dictionaries representing anchor tags with 'href' attributes.
+
+    Returns
+    -------
+    Tuple[List[list], List[list]]
+        A tuple containing lists of internal and external links.
+
+    Examples
+    --------
+    >>> domain_name = "example.com"
+    >>> url = "https://example.com/page1"
+    >>> page_anchors = [{'href': 'https://example.com/internal1', 'text': 'Internal Link 1'}, {'href': 'https://external.com', 'text': 'External Link'}]
+    >>> internal_links, external_links = create_link_lists(domain_name, url, page_anchors)
+    
+    >>> isinstance(internal_links, list)
+    True
+    
+    >>> isinstance(external_links, list)
+    True
+    
+    >>> all(isinstance(link, list) for link in internal_links)
+    True
+    
+    >>> all(isinstance(link, list) for link in external_links)
+    True
+    
+    >>> internal_links
+    [['https://example.com/page1', 'https://example.com/internal1', 'Internal Link 1']]
+    
+    >>> external_links
+    [['https://example.com/page1', 'https://external.com', 'External Link']]
+    """
+    print('\n', '#' * 50, '\n', '#', '\t\t', 'Creating Link Lists For: ', url, '\n', '#' * 50, '\n')
+    
+    page_external_links = [] # container for exrernal links
+    page_internal_links= [] # container for internal links
+    
+    # seperate internal and external links for a given url/webpage
+    for a in page_anchors:
+        try:
+            if (domain_name in a["href"]) and ("http" in a["href"]):
+                page_internal_links.append([url, a["href"], a.text])
+            elif "http" not in a["href"]:
+                pass
+            else:
+                page_external_links.append([url, a["href"], a.text])
+        except:
+            pass  
+
+    print('\n', '#' * 10, '\n', '#', '\t\t', '!!!End Creating Link Lists!!!', '\n', '#' * 10, '\n')
+    return page_internal_links, page_external_links
+
+def get_all_links(domain_name: str, unqiue_urls: list) -> Tuple[List[list], List[list]]:
+    """
+    Get all internal and external links from a list of unique URLs.
+
+    Parameters
+    ----------
+    domain_name : str
+        The domain name to filter internal links.
+    unique_urls : list
+        A list of unique URLs.
+
+    Returns
+    -------
+    Tuple[List[list], List[list]]
+        A tuple containing lists of all internal and external links.
+
+    Examples
+    --------
+    >>> domain_name = "example.com"
+    >>> unique_urls = ['https://example.com', 'https://example.com/page1']
+    >>> all_internal_links, all_external_links = get_all_links(domain_name, unique_urls)
+    
+    >>> isinstance(all_internal_links, list)
+    True
+    
+    >>> isinstance(all_external_links, list)
+    True
+    
+    >>> all(isinstance(link, list) for link in all_internal_links)
+    True
+    
+    >>> all(isinstance(link, list) for link in all_external_links)
+    True
+    
+    >>> all_internal_links
+    [['https://example.com', 'https://example.com/internal1', 'Internal Link 1'], ['https://example.com/page1', 'https://example.com/internal2', 'Internal Link 2']]
+    
+    >>> all_external_links
+    [['https://example.com', 'https://external.com', 'External Link 1'], ['https://example.com/page1', 'https://external2.com', 'External Link 2']]
+    """
+    all_internal_links = []
+    all_external_links = []
+    
+    url_anchor_maps = map_anchors_to_url(unqiue_urls) # dictionary of urls with anchors
+    
+    # loop through url_anchor_maps
+    # combine all internal and external links
+    for url, anchors in url_anchor_maps.items():
+        internal_links, external_links = create_link_lists(domain_name=domain_name, url=url, page_anchors=anchors)
+        all_internal_links += internal_links
+        all_external_links += external_links
+    return all_internal_links, all_external_links
 
 def get_unique_links(link_list_raw: List[list]) -> list:
     """
@@ -188,12 +320,10 @@ def identify_broken_links(unique_links: list) -> List[list]:
         print(f"Checking unique link #{count} out of {len(unique_links)}")
         
         try:
-            status_code = requests.get(link, headers=USER_AGENT).status_code
+            status_code = requests.get(link, headers=settings.USER_AGENT).status_code
             if status_code != 200:
                 broken_link_list.append([link, status_code])
-                #broken_link_list.append(link)
             else:
-                #print(f"\n-----\n{link}: {status_code}\n-----\n")
                 pass 
         except:
             broken_link_list.append([link, 0])
@@ -235,23 +365,14 @@ if __name__ == "__main__":
         WEBSITE_URL = sys.argv[2] # full website url with protocol ex. "https://example.com"
     except IndexError as ie:
         sys.exit(f"\n----\nERROR: please provide both the DOMAIN NAME and the FULL WEBSITE URL\n-----\n")
-        
-    website_pages = get_pages_from_sitemap(WEBSITE_URL)
-    print(f"-------\nWebsite Pages:\n{pd.Series(website_pages)}\n-------\n")
+    
+    #website_pages = get_pages_from_sitemap(WEBSITE_URL)
+    #print(f"-------\nWebsite Pages:\n{pd.Series(website_pages)}\n-------\n")
     
     filtered_pages = filter_unique_urls(WEBSITE_URL)
-    print(f"-------\nFiltered Pages:\n{pd.Series(list(filtered_pages))}\n-------\n")
-    #pages = get_list_unique_pages(WEBSITE_URL)
-    #internal_links_raw, external_links_raw = link_list(pages)
-    #internal_unique_links = get_unique_links(internal_links_raw)
-    #external_unique_links = get_unique_links(external_links_raw)
+    #print(f"-------\nFiltered Pages:\n{pd.Series(list(filtered_pages))}\n-------\n")
     
-    #internal_broken_links = identify_broken_links(internal_unique_links)
-    #external_broken_links = identify_broken_links(external_unique_links)
-    #print(f'\n-----\n')
-    #print(f"{len(internal_broken_links)} Internal Broken Links:\n{internal_broken_links}")
-    #print(f'\n-----\n')
-    #print(f"{len(external_broken_links)} External Broken Links:\n{external_broken_links}\n\n")
-    #print(match_broken_links(internal_broken_links, internal_links_raw))
-    #print(f'\n-----\n')
-    #print(match_broken_links(external_broken_links, external_links_raw))
+    internal, external = get_all_links(DOMAIN_NAME, filtered_pages)
+    print(f"\n-------\nInternal Links:\n{internal}\n-------\n\n")
+    print(f"\n-------\nExternal Links:\n{external}\n-------\n")
+    
