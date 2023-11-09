@@ -15,9 +15,7 @@ This file can also be imported as a module and contains the following
 functions:
 
     * get_pages_from_sitemap - Returns a list of all the pages present on a website.
-    * filter_unique_urls - Return a set of unique urls from list of raw urls.
-
-    
+    * filter_unique_urls - Return a set of unique urls from list of raw urls.  
 """
 from usp.tree import sitemap_tree_for_homepage
 import requests
@@ -391,25 +389,65 @@ def identify_broken_links(unique_links: list) -> List[list]:
     return broken_link_list
 
 
-def match_broken_links(broken_links_list: List[list], link_list_raw: List[list]) -> List[list]:
-    """Identify unique broken links and matches them to original list of all links
+def match_broken_links(broken_links: List[list], all_website_links: List[list]) -> pd.DataFrame:
+    """
+    Match broken links with their corresponding location in the original set of links.
 
-    Args:
-        broken_links_list (List[list]): _description_
-        link_list_raw (List[list]): _description_
+    Parameters
+    ----------
+    broken_links : List[list]
+        A list of broken links, each containing the link and its HTTP status code.
+    all_website_links : List[list]
+        A list of all website links, each containing URL, href, and text.
 
-    Returns:
-        List[list]: _description_
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame containing information about the location of broken links, including the original URL,
+        broken link URL, anchor text, and HTTP status code.
+        
+    Notes
+    -----
+    This function depends on the 'pandas' library for creating the resulting DataFrame.
+    Ensure that 'pandas' is installed in your environment before using this function.
+
+    Examples
+    --------
+    >>> broken_links = [['https://example.com/internal1', 404], ['https://example.com/nonexistent', 404]]
+    >>> all_website_links = [['https://example.com/page1', 'https://example.com/internal1', 'Internal Link 1'], ['https://example.com/page2', 'https://external.com', 'External Link']]
+    >>> broken_link_dataframe = match_broken_links(broken_links, all_website_links)
+    
+    >>> isinstance(broken_link_dataframe, pd.DataFrame)
+    True
+    
+    >>> len(broken_link_dataframe) == len(broken_links)
+    True
+    
+    >>> broken_link_dataframe.columns.tolist()
+    ['URL', 'Broken Link URL', 'Anchor Text', 'Status Code']
+    
+    >>> 'https://example.com/page1' in broken_link_dataframe['URL'].tolist()
+    True
+    
+    >>> 404 in broken_link_dataframe['Status Code'].tolist()
+    True
+    
+    >>> 'https://external.com' in broken_link_dataframe['Broken Link URL'].tolist()
+    False
     """
     broken_link_location = []
+    links_to_skip = set()
     
-    for link in link_list_raw:
-        for broken_link in broken_links_list:
-            if link[1] in broken_link:
+    for link in all_website_links:
+        for broken_link in broken_links:
+            if (link[1] in broken_link) and (link[1] not in links_to_skip):
                 broken_link_location.append([link[0], link[1], link[2], broken_link[1]])
+                
+                # add broken link to links_to_skip list to avoid duplicates
+                links_to_skip.add(link[1])
             else:
                 pass
-         
+    
     pd.set_option('display.max_rows', 500)
     dataframe_final = pd.DataFrame(broken_link_location, columns=["URL", "Broken Link URL", "Anchor Text", "Status Code"])
     return dataframe_final
@@ -440,8 +478,11 @@ if __name__ == "__main__":
     hrefs = filter_unique_hrefs(internal + external)
     print(f"\n-------\nhref Lenght:\n{len(hrefs)}\n-------\n")
     
-    broken_links = identify_broken_links(hrefs)
-    print(f"\n-------\nList Lenght:\n{broken_links}\n-------\n")
-    print(f"-------\nBroken Links Lenght:\n{len(broken_links)}\n-------\n")
+    b_links = identify_broken_links(hrefs)
+    print(f"\n-------\nList Lenght:\n{b_links}\n-------\n")
+    print(f"-------\nBroken Links Lenght:\n{len(b_links)}\n-------\n")
     
+    pd_links = match_broken_links(broken_links=b_links, all_website_links=(internal + external))
+    print(f"\n-------\nDataframe: \n{pd_links}\n-------\n")
+    print(f"\n-------\nDataframe Length: \n{len(pd_links)}\n-------\n")
     
