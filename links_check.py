@@ -282,24 +282,48 @@ def get_all_links(domain_name: str, unqiue_urls: list) -> Tuple[List[list], List
         all_external_links += external_links
     return all_internal_links, all_external_links
 
-def get_unique_links(link_list_raw: List[list]) -> list:
+def filter_unique_hrefs(link_groups: List[list]) -> list:
     """
-    Return a unique list of links from a raw list of links
+    Filter unique hrefs from a list of link groups.
 
-    Args:
-        link_list_raw (List[list]): A list containing a list of link information
+    Parameters
+    ----------
+    link_groups : List[list]
+        A list of link groups, where each group is a list containing URL, href, and text.
 
-    Returns:
-        list: A list of urls
+    Returns
+    -------
+    list
+        A list of unique hrefs extracted from the link groups.
+
+    Examples
+    --------
+    >>> link_groups = [['https://example.com', 'https://example.com/internal1', 'Internal Link 1'], ['https://example.com/page1', 'https://example.com/internal2', 'Internal Link 2']]
+    >>> unique_hrefs = filter_unique_hrefs(link_groups)
+    
+    >>> isinstance(unique_hrefs, list)
+    True
+    
+    >>> all(isinstance(href, str) for href in unique_hrefs)
+    True
+    
+    >>> len(unique_hrefs) == len(set(unique_hrefs))
+    True
+    
+    >>> 'https://example.com/internal1' in unique_hrefs
+    True
+    
+    >>> 'https://example.com/unique' in unique_hrefs
+    False
     """
-    unique_links = []
-    for link in link_list_raw:
-        if link[1] in unique_links:
+    unique_hrefs = []
+    for link in link_groups:
+        if link[1] in unique_hrefs:
             pass 
         else:
-            unique_links.append(link[1])
+            unique_hrefs.append(link[1])
     
-    return unique_links
+    return unique_hrefs
 
 # go through each unique link to identify broken ones
 def identify_broken_links(unique_links: list) -> List[list]:
@@ -373,6 +397,11 @@ if __name__ == "__main__":
     #print(f"-------\nFiltered Pages:\n{pd.Series(list(filtered_pages))}\n-------\n")
     
     internal, external = get_all_links(DOMAIN_NAME, filtered_pages)
-    print(f"\n-------\nInternal Links:\n{internal}\n-------\n\n")
-    print(f"\n-------\nExternal Links:\n{external}\n-------\n")
+    #print(f"\n-------\nInternal Links:\n{internal}\n-------\n\n")
+    #print(f"\n-------\nExternal Links:\n{external}\n-------\n")
+    print(f"\n-------\nList Lenght:\n{len(internal + external)}\n-------\n")
+    
+    hrefs = filter_unique_hrefs(internal + external)
+    print(f"\n-------\nList Lenght:\n{len(hrefs)}\n-------\n")
+    
     
