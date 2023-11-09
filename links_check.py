@@ -325,16 +325,49 @@ def filter_unique_hrefs(link_groups: List[list]) -> list:
     
     return unique_hrefs
 
-# go through each unique link to identify broken ones
 def identify_broken_links(unique_links: list) -> List[list]:
     """
-    Ping each link and return a list of broken links.
+    Identify broken links from a list of unique links.
 
-    Args:
-        unique_links (list): List of unique links.
+    Parameters
+    ----------
+    unique_links : list
+        A list of unique URLs.
 
-    Returns:
-        List[list]: A list of broken links and their status code.
+    Returns
+    -------
+    List[list]
+        A list of broken links, each containing the link and its HTTP status code.
+        
+    Notes
+    -----
+    This function makes use of the 'requests' library to fetch the status code of each link
+
+    Examples
+    --------
+    >>> unique_links = ['https://example.com', 'https://example.com/page1']
+    >>> broken_links = identify_broken_links(unique_links)
+    
+    >>> isinstance(broken_links, list)
+    True
+    
+    >>> all(isinstance(link, list) for link in broken_links)
+    True
+    
+    >>> all(isinstance(link[0], str) for link in broken_links)
+    True
+    
+    >>> all(isinstance(link[1], int) for link in broken_links)
+    True
+    
+    >>> any(link[1] != 200 for link in broken_links)
+    False
+    
+    >>> 'https://example.com/nonexistent' in unique_links
+    False
+    
+    >>> 'https://example.com/nonexistent' in [link[0] for link in broken_links]
+    True
     """
     count = 0
     broken_link_list = []
@@ -344,7 +377,10 @@ def identify_broken_links(unique_links: list) -> List[list]:
         print(f"Checking unique link #{count} out of {len(unique_links)}")
         
         try:
+            # get http status code for the link
             status_code = requests.get(link, headers=settings.USER_AGENT).status_code
+            
+            # add link to broken links if request unsuccessful
             if status_code != 200:
                 broken_link_list.append([link, status_code])
             else:
@@ -374,7 +410,7 @@ def match_broken_links(broken_links_list: List[list], link_list_raw: List[list])
             else:
                 pass
          
-    pd.set_option('display.max_rows', 100)
+    pd.set_option('display.max_rows', 500)
     dataframe_final = pd.DataFrame(broken_link_location, columns=["URL", "Broken Link URL", "Anchor Text", "Status Code"])
     return dataframe_final
          
@@ -402,6 +438,10 @@ if __name__ == "__main__":
     print(f"\n-------\nList Lenght:\n{len(internal + external)}\n-------\n")
     
     hrefs = filter_unique_hrefs(internal + external)
-    print(f"\n-------\nList Lenght:\n{len(hrefs)}\n-------\n")
+    print(f"\n-------\nhref Lenght:\n{len(hrefs)}\n-------\n")
+    
+    broken_links = identify_broken_links(hrefs)
+    print(f"\n-------\nList Lenght:\n{broken_links}\n-------\n")
+    print(f"-------\nBroken Links Lenght:\n{len(broken_links)}\n-------\n")
     
     
