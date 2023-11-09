@@ -1,21 +1,83 @@
-"""Website Link Auditor
+"""
+This script provides functions for extracting, analyzing, and identifying broken links in a website.
 
-This script allows the user to automate the inspection of all
-the internal and external links on a website. The script allows
-the user to audit a website for broken links.
-
-This script uses the following libraries:
-    ultimate sitemap parser
-    requests library
-    pandas
-    BeautifulSoup
-    typing
+Dependencies:
+- 'usp.tree' module for sitemap extraction
+- 'requests' for making HTTP requests
+- 'pandas' for creating DataFrames
+- 'BeautifulSoup' for HTML parsing
+- 'settings' module for user agent configuration
 
 This file can also be imported as a module and contains the following
 functions:
+1. `get_pages_from_sitemap(domain_url: str) -> list`: Retrieves a list of URLs from the sitemap of the provided domain.
 
-    * get_pages_from_sitemap - Returns a list of all the pages present on a website.
-    * filter_unique_urls - Return a set of unique urls from list of raw urls.  
+2. `filter_unique_urls(domain_url: str) -> set`: Filters out duplicate URLs from the sitemap of the provided domain.
+
+3. `map_anchors_to_url(unique_urls: list) -> dict[str, Iterable[dict]]`: Gets and maps anchors to their respective URLs.
+
+4. `create_link_lists(domain_name: str, url: str, page_anchors: Iterable[dict]) -> Tuple[List[list], List[list]]`: Creates lists of internal and external links for a given URL.
+
+5. `get_all_links(domain_name: str, unique_urls: list) -> Tuple[List[list], List[list]]`: Gets all internal and external links from a list of unique URLs.
+
+6. `filter_unique_hrefs(link_groups: List[list]) -> list`: Filters unique hrefs from a list of link groups.
+
+7. `identify_broken_links(unique_links: list) -> List[list]`: Identifies broken links from a list of unique links.
+
+8. `match_broken_links(broken_links: List[list], all_website_links: List[list]) -> pd.DataFrame`: Matches broken links with their corresponding location in the original set of links.
+
+Usage Examples:
+----------------
+# Example 1: Retrieving URLs from a sitemap
+>>> domain_url = "https://example.com"
+>>> pages = get_pages_from_sitemap(domain_url)
+>>> len(pages) > 0
+True
+
+# Example 2: Filtering unique URLs from a sitemap
+>>> unique_urls = filter_unique_urls(domain_url)
+>>> len(unique_urls) > 0
+True
+
+# Example 3: Mapping anchors to URLs
+>>> unique_urls = ['https://example.com', 'https://example.com/page1']
+>>> url_anchors_map = map_anchors_to_url(unique_urls)
+>>> isinstance(url_anchors_map, dict)
+True
+
+# Example 4: Creating link lists for a webpage
+>>> domain_name = "example.com"
+>>> url = "https://example.com/page1"
+>>> page_anchors = [{'href': 'https://example.com/internal1', 'text': 'Internal Link 1'}, {'href': 'https://external.com', 'text': 'External Link'}]
+>>> internal_links, external_links = create_link_lists(domain_name, url, page_anchors)
+>>> isinstance(internal_links, list)
+True
+
+# Example 5: Getting all internal and external links
+>>> domain_name = "example.com"
+>>> unique_urls = ['https://example.com', 'https://example.com/page1']
+>>> all_internal_links, all_external_links = get_all_links(domain_name, unique_urls)
+>>> isinstance(all_internal_links, list)
+True
+
+# Example 6: Filtering unique hrefs
+>>> link_groups = [['https://example.com', 'https://example.com/internal1', 'Internal Link 1'], ['https://example.com/page1', 'https://example.com/internal2', 'Internal Link 2']]
+>>> unique_hrefs = filter_unique_hrefs(link_groups)
+>>> isinstance(unique_hrefs, list)
+True
+
+# Example 7: Identifying broken links
+>>> unique_links = ['https://example.com', 'https://example.com/page1']
+>>> broken_links = identify_broken_links(unique_links)
+>>> isinstance(broken_links, list)
+True
+
+# Example 8: Matching broken links with their location
+>>> broken_links = [['https://example.com/internal1', 404], ['https://example.com/nonexistent', 404]]
+>>> all_website_links = [['https://example.com/page1', 'https://example.com/internal1', 'Internal Link 1'], ['https://example.com/page2', 'https://external.com', 'External Link']]
+>>> broken_link_dataframe = match_broken_links(broken_links, all_website_links)
+>>> isinstance(broken_link_dataframe, pd.DataFrame)
+True
 """
 from usp.tree import sitemap_tree_for_homepage
 import requests
