@@ -83,6 +83,7 @@ from usp.tree import sitemap_tree_for_homepage
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 from typing import Tuple, List, Iterable
 import settings
 
@@ -166,14 +167,14 @@ def filter_unique_urls(domain_url: str) -> set:
     unqiue_urls = set(get_pages_from_sitemap(domain_url))
     return unqiue_urls
 
-def map_anchors_to_url(unqiue_urls: list) -> dict[str, Iterable[dict]]:
+def map_anchors_to_url(unqiue_urls: set) -> dict[str, Iterable[dict]]:
     """
     Get and map anchors to their respective URLs.
 
     Parameters
     ----------
-    unique_urls : list
-        A list of unique URLs.
+    unique_urls : set
+        A set of unique URLs.
 
     Returns
     -------
@@ -226,7 +227,7 @@ def map_anchors_to_url(unqiue_urls: list) -> dict[str, Iterable[dict]]:
     print('\n', '#' * 10, '\n', '#', '\t', '!!!End Maping Anchors To URL!!!', '\n', '#' * 10, '\n')
     return url_map
 
-def create_link_lists(domain_name: str, url: str, page_anchors: Iterable[dict]) -> Tuple[List[list], List[list]]:
+def create_link_lists(domain_name: str, url: str, page_anchors: Iterable[Tag]) -> Tuple[List[list], List[list]]:
     """
     Create lists of internal and external links for a given URL.
 
@@ -276,6 +277,7 @@ def create_link_lists(domain_name: str, url: str, page_anchors: Iterable[dict]) 
     
     # seperate internal and external links for a given url/webpage
     for a in page_anchors:
+        print(f"\nAnchor type: {type(a)}\n")
         try:
             if (domain_name in a["href"]) and ("http" in a["href"]):
                 page_internal_links.append([url, a["href"], a.text])
@@ -283,13 +285,14 @@ def create_link_lists(domain_name: str, url: str, page_anchors: Iterable[dict]) 
                 pass
             else:
                 page_external_links.append([url, a["href"], a.text])
-        except:
+        except Exception as e:
+            print("ERROR: create_link_lists error: ",e)
             pass  
 
     print('\n', '#' * 10, '\n', '#', '\t\t', '!!!End Creating Link Lists!!!', '\n', '#' * 10, '\n')
     return page_internal_links, page_external_links
 
-def get_all_links(domain_name: str, unqiue_urls: list) -> Tuple[List[list], List[list]]:
+def get_all_links(domain_name: str, unqiue_urls: set) -> Tuple[List[list], List[list]]:
     """
     Get all internal and external links from a list of unique URLs.
 
@@ -297,8 +300,8 @@ def get_all_links(domain_name: str, unqiue_urls: list) -> Tuple[List[list], List
     ----------
     domain_name : str
         The domain name to filter internal links.
-    unique_urls : list
-        A list of unique URLs.
+    unique_urls : set
+        A set of unique URLs.
 
     Returns
     -------
@@ -445,7 +448,8 @@ def identify_broken_links(unique_links: list) -> List[list]:
                 broken_link_list.append([link, status_code])
             else:
                 pass 
-        except:
+        except Exception as e:
+            print("ERROR: identify_broken_links try/catch error: ", e)
             broken_link_list.append([link, 0])
             
     return broken_link_list
@@ -512,9 +516,7 @@ def match_broken_links(broken_links: List[list], all_website_links: List[list]) 
     
     pd.set_option('display.max_rows', 500)
     dataframe_final = pd.DataFrame(broken_link_location, columns=["URL", "Broken Link URL", "Anchor Text", "Status Code"])
-    return dataframe_final
-         
-                
+    return dataframe_final                
 
 if __name__ == "__main__":
     import sys
@@ -523,8 +525,8 @@ if __name__ == "__main__":
         print('getting info')
         DOMAIN_NAME = sys.argv[1]
         WEBSITE_URL = sys.argv[2] # full website url with protocol ex. "https://example.com"
-    except IndexError as ie:
-        sys.exit(f"\n----\nERROR: please provide both the DOMAIN NAME and the FULL WEBSITE URL\n-----\n")
+    except IndexError as e:
+        sys.exit(f"\n----\nERROR: {e} \n##Please provide both the DOMAIN NAME and the FULL WEBSITE URL\n-----\n")
     
     #website_pages = get_pages_from_sitemap(WEBSITE_URL)
     #print(f"-------\nWebsite Pages:\n{pd.Series(website_pages)}\n-------\n")
