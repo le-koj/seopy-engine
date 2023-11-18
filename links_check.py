@@ -83,7 +83,7 @@ from usp.tree import sitemap_tree_for_homepage
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
-from bs4.element import Tag
+from bs4.element import Tag, ResultSet
 from typing import Tuple, List, Iterable
 import settings
 
@@ -167,7 +167,7 @@ def filter_unique_urls(domain_url: str) -> set:
     unqiue_urls = set(get_pages_from_sitemap(domain_url))
     return unqiue_urls
 
-def map_anchors_to_url(unqiue_urls: set) -> dict[str, Iterable[dict]]:
+def map_anchors_to_url(unqiue_urls: set) -> dict[str, ResultSet]:
     """
     Get and map anchors to their respective URLs.
 
@@ -208,8 +208,6 @@ def map_anchors_to_url(unqiue_urls: set) -> dict[str, Iterable[dict]]:
     >>> 'https://example.com/nonexistent' in url_anchors_map
     False
     """
-    print('\n', '#' * 10, '\n', '#', '\t', 'Mapping Anchors To URL', '\n', '#' * 10, '\n')
-    
     count = 0
     length_list = len(unqiue_urls)
     url_map = dict()
@@ -223,8 +221,6 @@ def map_anchors_to_url(unqiue_urls: set) -> dict[str, Iterable[dict]]:
         url_anchors = soup.find_all("a") # returns iterable
         url_map[f'{url}'] = url_anchors
         print('-------> ', count, "pages checked out of ", length_list, "\n")
-    
-    print('\n', '#' * 10, '\n', '#', '\t', '!!!End Maping Anchors To URL!!!', '\n', '#' * 10, '\n')
     return url_map
 
 def create_link_lists(domain_name: str, url: str, page_anchors: Iterable[Tag]) -> Tuple[List[list], List[list]]:
