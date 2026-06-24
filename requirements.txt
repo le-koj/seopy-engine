@@ -24,7 +24,7 @@ bcrypt @ file:///tmp/abs_6fpe92qzzo/croots/recipe/bcrypt_1659554336150/work
 beautifulsoup4 @ file:///opt/conda/conda-bld/beautifulsoup4_1650462163268/work
 binaryornot @ file:///tmp/build/80754af9/binaryornot_1617751525010/work
 black @ file:///opt/conda/conda-bld/black_1660237809219/work
-bleach==6.1.0
+bleach==6.4.0
 blinker==1.7.0
 bokeh @ file:///tmp/abs_34854e1f-d7d3-4f22-85d9-1075588e4ecdga64o0qg/croots/recipe/bokeh_1658136654619/work
 boltons @ file:///croot/boltons_1677628692245/work
